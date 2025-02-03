@@ -37,7 +37,8 @@ builder.Services.AddTransient((serviceProvider) =>
     return new Kernel(serviceProvider, pluginCollection);
 });
 
-builder.Services.AddHostedService<Worker>();
+//builder.Services.AddHostedService<Worker>();
+builder.Services.AddHostedService<ImageWorker>();
 
 using var host = builder.Build();
 
