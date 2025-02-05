@@ -21,20 +21,10 @@ namespace KernelOne
             var history = new ChatHistory();
             var settings = new OpenAIPromptExecutionSettings
             {
-                FunctionChoiceBehavior = FunctionChoiceBehavior.Required()
+                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(autoInvoke: false)
             };
 
             var chat = _kernel.GetRequiredService<IChatCompletionService>();
-
-            // System message instructing AI
-            history.Add(
-                new()
-                {
-                    Role = AuthorRole.System,
-                    Content = "Check history to know if the user needs content streaming or not-streaming."
-                            + " If you can't find it, call the function `get_use_streaming_content` to determine the result type."
-                }
-            );
 
             history.Add(
                 new()
@@ -44,7 +34,14 @@ namespace KernelOne
                         new FunctionCallContent(
                             functionName: "get_use_streaming_content",
                             pluginName: "ContentResultType",
-                            id: "0001"
+                            id: "0001",
+                            arguments: new () { { "type", "stream" } }
+                        ),
+                        new FunctionCallContent(
+                            functionName: "get_use_streaming_content",
+                            pluginName: "ContentResultType",
+                            id: "0002",
+                            arguments: new () { { "type", "not-stream" } }
                         )
                     ]
                 }
@@ -59,34 +56,55 @@ namespace KernelOne
                             functionName: "get_use_streaming_content",
                             pluginName: "ContentResultType",
                             callId: "0001",
+                            result: "stream"
+                        )
+                    ]
+                }
+            );
+
+            history.Add(
+                new()
+                {
+                    Role = AuthorRole.Tool,
+                    Items = [
+                        new FunctionResultContent(
+                            functionName: "get_use_streaming_content",
+                            pluginName: "ContentResultType",
+                            callId: "0002",
                             result: "not-stream"
                         )
                     ]
                 }
             );
 
-            bool? streamContent = null;
-            if (streamContent == null)
-            {
-                var useStreamOrNot = history.SelectMany(s => s.Items.OfType<FunctionResultContent>());
-                var aiResponse = useStreamOrNot.FirstOrDefault()?.Result;
-                if (Equals(aiResponse, "stream"))
+            history.Add(
+                new()
                 {
-                    streamContent = true;
-                    history.AddSystemMessage("User needs result streamed");
+                    Role = AuthorRole.System,
+                    Content = "If the user says to give results streamed or not-streamed, invoke the function 'get_use_streaming_content' with the correct argument"
                 }
-                else if (Equals(aiResponse, "not-stream"))
-                {
-                    streamContent = false;
-                    history.AddSystemMessage("User needs result not streamed");
-                }
-            }
+            );
+
+            bool streamContent = false;
+            //if (streamContent == null)
+            //{
+            //    var useStreamOrNot = history.SelectMany(s => s.Items.OfType<FunctionResultContent>());
+            //    var aiResponse = useStreamOrNot.FirstOrDefault()?.Result;
+            //    if (Equals(aiResponse, "stream"))
+            //    {
+            //        streamContent = true;
+            //        history.AddSystemMessage("User needs result streamed");
+            //    }
+            //    else if (Equals(aiResponse, "not-stream"))
+            //    {
+            //        streamContent = false;
+            //        history.AddSystemMessage("User needs result not streamed");
+            //    }
+            //}
 
             var input = "";
             do
             {
-                int currentChatHistoryLength = history.Count;
-
                 Console.Write("You: ");
                 input = Console.ReadLine();
                 if (string.IsNullOrWhiteSpace(input))
@@ -100,22 +118,71 @@ namespace KernelOne
                 {
                     var result = chat.GetStreamingChatMessageContentsAsync(history, settings, _kernel);
                     Console.Write($"\nAgent: ");
+                    var contentBuilder = new FunctionCallContentBuilder();
                     await foreach (var item in result)
                     {
-                        Console.Write(item.Content);
+                        if (!string.IsNullOrWhiteSpace(item.Content))
+                        {
+                            Console.Write(item.Content);
+                        }
+
+                        contentBuilder.Append(item);
                     }
                     Console.Write("\n\n");
+
+                    var fs = contentBuilder.Build();
+                    if (fs.Any())
+                    {
+                        var fcContent = new ChatMessageContent(role: AuthorRole.Assistant, content: null);
+                        history.Add(fcContent);
+                        foreach (var functionCall in fs)
+                        {
+                            fcContent.Items.Add(functionCall);
+
+                            //var functionResult = await functionCall.InvokeAsync(_kernel);
+                            //history.Add(functionResult.ToChatMessage());
+                            
+                            var type = (string)(functionCall.Arguments?.GetValueOrDefault("type") ?? "");
+                            streamContent = type == "stream";
+                            Console.Write($"Understood, answers to you will now be {type}ed\n\n");
+                            history.Add(new FunctionResultContent(functionCall, type).ToChatMessage());
+                        }
+                    }
                 }
                 else
                 {
                     var result = await chat.GetChatMessageContentAsync(history, settings, _kernel);
-                    Console.Write($"\nAgent: {result.Content}\n\n");
-                    history.Add(result);
-                }
+                    if (!string.IsNullOrWhiteSpace(result.Content))
+                    {
+                        Console.Write($"\nAgent: {result.Content}\n\n");
+                        history.Add(result);
+                        continue;
+                    }
 
-                for (int i = currentChatHistoryLength; i < history.Count; i++)
-                {
-                    Console.WriteLine(history[i]);
+                    history.Add(result);
+                    var functionCalls = FunctionCallContent.GetFunctionCalls(result);
+                    if (!functionCalls.Any())
+                    {
+                        break;
+                    }
+
+                    foreach (var functionCall in functionCalls)
+                    {
+                        try
+                        {
+                            //var resultContent = await functionCall.InvokeAsync(_kernel);
+                            //history.Add(resultContent.ToChatMessage());
+                            
+                            var type = (string)(functionCall.Arguments?.GetValueOrDefault("type") ?? "");
+                            streamContent = type == "stream";
+                            Console.Write($"\nAgent: Understood, answers to you will now be {type}ed\n\n");
+                            history.Add(new FunctionResultContent(functionCall, type).ToChatMessage());
+                        }
+                        catch (Exception ex)
+                        {
+                            history.Add(new FunctionResultContent(functionCall, ex).ToChatMessage());
+                        }
+                    }
                 }
             } while (input?.ToLower() != "exit");
 
