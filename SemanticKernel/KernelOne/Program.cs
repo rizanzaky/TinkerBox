@@ -34,7 +34,9 @@ builder.Services.AddSingleton<KernelPluginCollection>((serviceProvider) =>
 builder.Services.AddTransient((serviceProvider) =>
 {
     var pluginCollection = serviceProvider.GetRequiredService<KernelPluginCollection>();
-    return new Kernel(serviceProvider, pluginCollection);
+    var kernel = new Kernel(serviceProvider, pluginCollection);
+    kernel.FunctionInvocationFilters.Add(new SkipFunctionFilter());
+    return kernel;
 });
 
 builder.Services.AddHostedService<Worker>();
