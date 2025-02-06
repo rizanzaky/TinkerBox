@@ -86,21 +86,6 @@ namespace KernelOne
             );
 
             bool streamContent = false;
-            //if (streamContent == null)
-            //{
-            //    var useStreamOrNot = history.SelectMany(s => s.Items.OfType<FunctionResultContent>());
-            //    var aiResponse = useStreamOrNot.FirstOrDefault()?.Result;
-            //    if (Equals(aiResponse, "stream"))
-            //    {
-            //        streamContent = true;
-            //        history.AddSystemMessage("User needs result streamed");
-            //    }
-            //    else if (Equals(aiResponse, "not-stream"))
-            //    {
-            //        streamContent = false;
-            //        history.AddSystemMessage("User needs result not streamed");
-            //    }
-            //}
 
             var input = "";
             do
@@ -139,9 +124,10 @@ namespace KernelOne
                         {
                             fcContent.Items.Add(functionCall);
 
+                            // we're skipping this with filters
                             //var functionResult = await functionCall.InvokeAsync(_kernel);
                             //history.Add(functionResult.ToChatMessage());
-                            
+
                             var type = (string)(functionCall.Arguments?.GetValueOrDefault("type") ?? "");
                             streamContent = type == "stream";
                             Console.Write($"Understood, answers to you will now be {type}ed\n\n");
@@ -170,9 +156,10 @@ namespace KernelOne
                     {
                         try
                         {
+                            // we're skipping this with filters
                             //var resultContent = await functionCall.InvokeAsync(_kernel);
                             //history.Add(resultContent.ToChatMessage());
-                            
+
                             var type = (string)(functionCall.Arguments?.GetValueOrDefault("type") ?? "");
                             streamContent = type == "stream";
                             Console.Write($"\nAgent: Understood, answers to you will now be {type}ed\n\n");
