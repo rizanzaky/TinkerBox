@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KernelOne", "KernelOne\KernelOne.csproj", "{494CCBE4-4BCA-46A6-A46F-7F6A408D3AA9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KernelOne", "Concepts\KernelOne\KernelOne.csproj", "{494CCBE4-4BCA-46A6-A46F-7F6A408D3AA9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Telemetry", "Concepts\Telemetry\Telemetry.csproj", "{7414C99A-6B8D-4217-9A1C-1D46AB708821}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{494CCBE4-4BCA-46A6-A46F-7F6A408D3AA9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{494CCBE4-4BCA-46A6-A46F-7F6A408D3AA9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{494CCBE4-4BCA-46A6-A46F-7F6A408D3AA9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7414C99A-6B8D-4217-9A1C-1D46AB708821}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7414C99A-6B8D-4217-9A1C-1D46AB708821}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7414C99A-6B8D-4217-9A1C-1D46AB708821}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7414C99A-6B8D-4217-9A1C-1D46AB708821}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
